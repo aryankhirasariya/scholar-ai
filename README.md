@@ -48,24 +48,26 @@ uvicorn app.main:app --reload
 
 ## Project structure
 
+```
 scholar-ai/
 ├── app/
-│ ├── main.py # FastAPI app entry point
-│ ├── config.py # Settings loaded from .env
-│ ├── models/schemas.py # Request/response data shapes
-│ ├── routers/
-│ │ ├── documents.py # Upload, list, delete endpoints
-│ │ └── chat.py # RAG chat endpoint
-│ ├── services/
-│ │ ├── document_loader.py # PDF/DOCX/TXT reading + chunking
-│ │ ├── ocr_service.py # Image → text extraction
-│ │ ├── memory_service.py # ChromaDB storage + retrieval
-│ │ └── llm_service.py # Ollama chat generation
-│ └── static/index.html # Frontend
+│   ├── main.py              # FastAPI app entry point
+│   ├── config.py            # Settings loaded from .env
+│   ├── models/schemas.py    # Request/response data shapes
+│   ├── routers/
+│   │   ├── documents.py     # Upload, list, delete endpoints
+│   │   └── chat.py          # RAG chat endpoint
+│   ├── services/
+│   │   ├── document_loader.py  # PDF/DOCX/TXT reading + chunking
+│   │   ├── ocr_service.py      # Image → text extraction
+│   │   ├── memory_service.py   # ChromaDB storage + retrieval
+│   │   └── llm_service.py      # Ollama chat generation
+│   └── static/index.html    # Frontend
 ├── data/
-│ ├── uploads/ # Uploaded files (gitignored)
-│ └── chroma_db/ # Vector database (gitignored)
+│   ├── uploads/              # Uploaded files (gitignored)
+│   └── chroma_db/            # Vector database (gitignored)
 └── requirements.txt
+```
 
 
 ## Project context
