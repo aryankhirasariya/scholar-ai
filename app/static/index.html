@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Scholar AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #141824;
+    --ink-light: #1E2438;
+    --paper: #F6F1E6;
+    --paper-dim: #EAE3D3;
+    --gold: #C9A15C;
+    --gold-bright: #DDBB7A;
+    --sage: #7C9885;
+    --text-on-paper: #1E2438;
+    --text-on-ink: #EDE7D8;
+    --text-muted: #8B8677;
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--ink);
+    color: var(--text-on-ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+  /* LAYOUT SHELL */
+  .app-shell { display: flex; flex-direction: column; height: 100vh; }
+
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 32px; border-bottom: 1px solid rgba(201,161,92,0.2);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    font-family: var(--font-display); font-size: 28px; color: var(--gold);
+  }
+  .brand h1 {
+    font-family: var(--font-display); font-weight: 600; font-size: 22px;
+    letter-spacing: 0.3px;
+  }
+  .privacy-badge {
+    font-family: var(--font-mono); font-size: 12px; color: var(--sage);
+    background: rgba(124,152,133,0.12); padding: 6px 12px; border-radius: 20px;
+  }
+
+  .workspace { display: flex; flex: 1; overflow: hidden; }
+
+  /* LIBRARY SIDEBAR */
+  .library {
+    width: 300px; background: var(--ink-light); padding: 24px;
+    display: flex; flex-direction: column; overflow-y: auto;
+    border-right: 1px solid rgba(201,161,92,0.15);
+  }
+  .library-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .library-header h2 { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .upload-btn {
+    font-family: var(--font-mono); font-size: 12px; color: var(--gold);
+    border: 1px solid var(--gold); padding: 6px 12px; border-radius: 6px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .upload-btn:hover { background: var(--gold); color: var(--ink); }
+
+  .upload-status { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-bottom: 12px; min-height: 16px; }
+
+  /* DOCUMENT "INDEX CARDS" */
+  .doc-card {
+    background: var(--paper); color: var(--text-on-paper);
+    border-radius: 4px; padding: 14px 16px; margin-bottom: 10px;
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.25);
+    font-family: var(--font-body);
+  }
+  .doc-card .doc-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; word-break: break-word; }
+  .doc-card .doc-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+
+  /* CHAT / READING PANE */
+  .reading-pane { flex: 1; display: flex; flex-direction: column; padding: 24px 40px; overflow: hidden; }
+  .chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding-bottom: 20px; }
+
+  .msg-question {
+    align-self: flex-end; max-width: 65%;
+    background: var(--gold); color: var(--ink);
+    padding: 10px 16px; border-radius: 12px 12px 2px 12px;
+    font-size: 14px;
+  }
+
+  .msg-answer {
+    align-self: flex-start; max-width: 75%;
+    background: var(--paper); color: var(--text-on-paper);
+    padding: 16px 18px; border-radius: 12px 12px 12px 2px;
+    font-size: 14px; line-height: 1.6;
+  }
+
+  /* CITATION TABS — the signature element */
+  .citations { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .citation-tab {
+    font-family: var(--font-mono); font-size: 10px; color: var(--ink);
+    background: var(--sage); padding: 3px 8px; border-radius: 3px 3px 0 0;
+    border-bottom: 2px solid var(--ink-light);
+  }
+
+  /* INPUT ROW */
+  .chat-input-row { display: flex; gap: 10px; }
+  #questionInput {
+    flex: 1; padding: 14px 16px; border-radius: 8px; border: 1px solid rgba(201,161,92,0.3);
+    background: var(--ink-light); color: var(--text-on-ink); font-family: var(--font-body); font-size: 14px;
+  }
+  #questionInput:focus { outline: 2px solid var(--gold); }
+  .chat-input-row button {
+    padding: 14px 24px; border-radius: 8px; border: none;
+    background: var(--gold); color: var(--ink); font-weight: 600; cursor: pointer;
+    font-family: var(--font-body);
+  }
+  .chat-input-row button:hover { background: var(--gold-bright); }
+  /*delete button*/
+  .doc-card {
+    position: relative;
+  }
+  .doc-delete-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 14px; font-family: var(--font-body);
+    padding: 2px 6px; border-radius: 4px; opacity: 0.5;
+    transition: all 0.15s;
+  }
+  .doc-delete-btn:hover { opacity: 1; color: #C0504D; background: rgba(192,80,77,0.1); }
+</style>
+</head>
+<body>
+    <div class="app-shell">
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">§</span>
+      <h1>Scholar AI</h1>
+    </div>
+    <div class="privacy-badge">● Running locally — nothing leaves this machine</div>
+  </header>
+
+  <div class="workspace">
+
+    <!-- LEFT: Document Library -->
+    <aside class="library">
+      <div class="library-header">
+        <h2>Library</h2>
+        <label class="upload-btn">
+          + Add Document
+          <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" hidden>
+        </label>
+      </div>
+      <div id="uploadStatus" class="upload-status"></div>
+      <div id="docList" class="doc-list">
+        <!-- document cards get inserted here by JS -->
+      </div>
+    </aside>
+
+    <!-- RIGHT: Chat -->
+    <main class="reading-pane">
+      <div id="chatLog" class="chat-log"></div>
+      <form id="chatForm" class="chat-input-row">
+        <input id="questionInput" type="text" placeholder="Ask something about your documents..." autocomplete="off">
+        <button type="submit">Ask</button>
+      </form>
+    </main>
+
+  </div>
+</div>
+</body>
+<script>
+  const API = ""; // same origin, so empty string is fine
+
+  // ---------- LOAD DOCUMENT LIBRARY ----------
+  async function loadDocuments() {
+    const res = await fetch(`${API}/documents/`);
+    const docs = await res.json();
+
+    const docList = document.getElementById("docList");
+    docList.innerHTML = "";
+
+    if (docs.length === 0) {
+      docList.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">No documents yet. Add one above.</p>`;
+      return;
+    }
+
+    docs.forEach(doc => {
+      const card = document.createElement("div");
+      card.className = "doc-card";
+      card.innerHTML = `
+        <button class="doc-delete-btn" title="Delete document">✕</button>
+        <div class="doc-name">${doc.filename}</div>
+        <div class="doc-meta">${doc.source_type.toUpperCase()} · ${doc.chunk_count} chunks</div>
+      `;
+
+      card.querySelector(".doc-delete-btn").addEventListener("click", async () => {
+        const confirmed = confirm(`Delete "${doc.filename}"? This can't be undone.`);
+        if (!confirmed) return;
+
+        await fetch(`${API}/documents/${doc.doc_id}`, { method: "DELETE" });
+        loadDocuments(); // refresh the list
+      });
+
+      docList.appendChild(card);
+    });
+  }
+
+  // ---------- UPLOAD A DOCUMENT ----------
+  document.getElementById("fileInput").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById("uploadStatus");
+    statusEl.textContent = `Processing ${file.name}...`;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API}/documents/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        statusEl.textContent = `Error: ${err.detail}`;
+        return;
+      }
+
+      const data = await res.json();
+      statusEl.textContent = `Added ${data.filename} (${data.chunks_stored} chunks)`;
+      loadDocuments(); // refresh the sidebar
+    } catch (err) {
+      statusEl.textContent = "Upload failed. Check server connection.";
+    }
+
+    e.target.value = ""; // reset file input so same file can be re-uploaded if needed
+  });
+
+  // ---------- ASK A QUESTION ----------
+  document.getElementById("chatForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("questionInput");
+    const question = input.value.trim();
+    if (!question) return;
+
+    const chatLog = document.getElementById("chatLog");
+
+    // show the user's question immediately
+    const qBubble = document.createElement("div");
+    qBubble.className = "msg-question";
+    qBubble.textContent = question;
+    chatLog.appendChild(qBubble);
+
+    input.value = "";
+    chatLog.scrollTop = chatLog.scrollHeight;
+
+    // show a temporary "thinking" bubble
+    const thinkingBubble = document.createElement("div");
+    thinkingBubble.className = "msg-answer";
+    thinkingBubble.textContent = "Thinking...";
+    chatLog.appendChild(thinkingBubble);
+    chatLog.scrollTop = chatLog.scrollHeight;
+
+    try {
+      const res = await fetch(`${API}/chat/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: "web-ui", question, top_k: 5 }),
+      });
+      const data = await res.json();
+
+      // build the citation tabs
+      const citationsHtml = data.sources.map(s =>
+        `<span class="citation-tab">${s.filename} · ${s.score}</span>`
+      ).join("");
+
+      thinkingBubble.innerHTML = `
+        ${data.answer}
+        <div class="citations">${citationsHtml}</div>
+      `;
+    } catch (err) {
+      thinkingBubble.textContent = "Something went wrong. Is the server running?";
+    }
+
+    chatLog.scrollTop = chatLog.scrollHeight;
+  });
+
+  // ---------- INITIAL LOAD ----------
+  loadDocuments();
+</script>
+</html>
