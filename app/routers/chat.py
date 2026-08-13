@@ -11,9 +11,8 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 async def chat(request: ChatRequest):
     hits = search_memory(request.question, top_k=request.top_k)
 
-    context_chunks = [hit["chunk_text"] for hit in hits]
-    answer = answer_question(request.question, context_chunks)
-
+    
+    answer = answer_question(request.question, hits)
     sources = [
         SourceChunk(
             doc_id=hit["doc_id"],

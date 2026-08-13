@@ -10,6 +10,14 @@ def load_pdf(path: str) -> str:
             text_parts.append(page_text)
     return "\n".join(text_parts)
 
+def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[str]:
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start = end - overlap  # step back for overlap
+    return chunks
 
 def load_docx(path: str) -> str:
     document = docx.Document(path)
@@ -32,16 +40,3 @@ def load_document(path: str, source_type: str) -> str:
         raise ValueError(f"Unsupported document type: {source_type}")
 
 
-def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> list[str]:
-    words = text.split()
-    if not words:
-        return []
-
-    chunks = []
-    start = 0
-    while start < len(words):
-        end = start + chunk_size
-        chunk = " ".join(words[start:end])
-        chunks.append(chunk)
-        start += chunk_size - overlap
-    return chunks

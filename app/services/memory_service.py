@@ -34,6 +34,9 @@ def store_chunks(doc_id: str, filename: str, source_type: str, chunks: list[str]
     )
     return len(chunks)
 
+
+
+
 def delete_document(doc_id: str) -> int:
     """
     Removes all chunks belonging to a document from persistent memory.
@@ -48,26 +51,44 @@ def delete_document(doc_id: str) -> int:
     _collection.delete(ids=ids_to_delete)
     return len(ids_to_delete)
 
+def embed_text(text: str):
+    if len(text) > 4000:  # sanity cap, well under model's token limit
+        text = text[:4000]
+    response = ollama.embeddings(model=settings.embed_model, prompt=text)
+    return response["embedding"]
 def search_memory(query: str, top_k: int = 5) -> list[dict]:
     query_embedding = embed_text(query)
 
-    results = _collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k,
-    )
+    # Find every unique document currently stored
+    all_items = _collection.get(include=["metadatas"])
+    doc_ids = list({m["doc_id"] for m in all_items["metadatas"]})
+
+    if not doc_ids:
+        return []
+
+    # Pull a fair share of chunks from EACH document
+    per_doc_k = max(1, top_k // len(doc_ids))
 
     hits = []
-    docs = results.get("documents", [[]])[0]
-    metas = results.get("metadatas", [[]])[0]
-    distances = results.get("distances", [[]])[0]
+    for doc_id in doc_ids:
+        results = _collection.query(
+            query_embeddings=[query_embedding],
+            n_results=per_doc_k,
+            where={"doc_id": doc_id},
+        )
+        docs = results.get("documents", [[]])[0]
+        metas = results.get("metadatas", [[]])[0]
+        distances = results.get("distances", [[]])[0]
 
-    for doc_text, meta, distance in zip(docs, metas, distances):
-        hits.append({
-            "chunk_text": doc_text,
-            "doc_id": meta.get("doc_id"),
-            "filename": meta.get("filename"),
-            "score": 1 - distance,
-        })
+        for doc_text, meta, distance in zip(docs, metas, distances):
+            hits.append({
+                "chunk_text": doc_text,
+                "doc_id": meta.get("doc_id"),
+                "filename": meta.get("filename"),
+                "score": 1 - distance,
+            })
+
+    hits.sort(key=lambda x: x["score"], reverse=True)
     return hits
 
 
