@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-
-from app.routers import documents, chat
+from app.routers import documents, chat, auth, export
+from app.services.auth_service import init_db
 
 app = FastAPI(
     title="Scholar AI",
@@ -9,8 +9,13 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# initialise user database on startup
+init_db()
+
+app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
+app.include_router(export.router)
 
 app.mount("/app", StaticFiles(directory="app/static", html=True), name="static")
 

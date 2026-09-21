@@ -1,13 +1,12 @@
 import os
 import uuid
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from app.services.memory_service import store_chunks, list_documents, delete_document
+from app.services.auth_service import get_current_user
 from app.config import settings
 from app.models.schemas import UploadResponse, DocumentInfo
 from app.services.document_loader import load_document, chunk_text
-from app.services.ocr_service import load_image_text
-from app.services.memory_service import store_chunks, list_documents
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -22,7 +21,10 @@ EXT_MAP = {
 
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
     ext = os.path.splitext(file.filename)[1].lower()
     source_type = EXT_MAP.get(ext)
 
@@ -39,10 +41,7 @@ async def upload_document(file: UploadFile = File(...)):
     with open(save_path, "wb") as f:
         f.write(await file.read())
 
-    if source_type == "image":
-        text = load_image_text(save_path)
-    else:
-        text = load_document(save_path, source_type)
+    text = load_document(save_path, source_type)
 
     if not text.strip():
         raise HTTPException(
@@ -67,11 +66,17 @@ async def upload_document(file: UploadFile = File(...)):
 
 
 @router.get("/", response_model=list[DocumentInfo])
-async def get_all_documents():
+async def get_all_documents(
+    current_user: dict = Depends(get_current_user)
+):
     return list_documents()
 
+
 @router.delete("/{doc_id}")
-async def remove_document(doc_id: str):
+async def remove_document(
+    doc_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     deleted_count = delete_document(doc_id)
 
     if deleted_count == 0:

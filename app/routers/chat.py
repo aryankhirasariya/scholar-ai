@@ -1,17 +1,20 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.models.schemas import ChatRequest, ChatResponse, SourceChunk
 from app.services.memory_service import search_memory
 from app.services.llm_service import answer_question
+from app.services.auth_service import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 @router.post("/", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(
+    request: ChatRequest,
+    current_user: dict = Depends(get_current_user)
+):
     hits = search_memory(request.question, top_k=request.top_k)
 
-    
     answer = answer_question(request.question, hits)
     sources = [
         SourceChunk(

@@ -2,191 +2,719 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Scholar AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <style>
   :root {
-    --ink: #141824;
-    --ink-light: #1E2438;
-    --paper: #F6F1E6;
-    --paper-dim: #EAE3D3;
-    --gold: #C9A15C;
-    --gold-bright: #DDBB7A;
-    --sage: #7C9885;
-    --text-on-paper: #1E2438;
-    --text-on-ink: #EDE7D8;
-    --text-muted: #8B8677;
-    --font-display: 'Fraunces', serif;
-    --font-body: 'Inter', sans-serif;
-    --font-mono: 'IBM Plex Mono', monospace;
+    --bg:        #0A0A0B;
+    --bg-2:      #111114;
+    --bg-3:      #18181C;
+    --bg-4:      #1F1F25;
+    --border:    rgba(255,255,255,0.06);
+    --border-md: rgba(255,255,255,0.10);
+    --gold:      #C9A15C;
+    --gold-dim:  rgba(201,161,92,0.12);
+    --gold-glow: rgba(201,161,92,0.20);
+    --sage:      #6B8F76;
+    --text-1:    #F0EBE0;
+    --text-2:    #A09890;
+    --text-3:    #5A5650;
+    --red:       #C05050;
+    --font-d:    'Fraunces', serif;
+    --font-b:    'Inter', sans-serif;
+    --font-m:    'IBM Plex Mono', monospace;
+    --r:         8px;
+    --sidebar-w: 280px;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
 
   body {
-    background: var(--ink);
-    color: var(--text-on-ink);
-    font-family: var(--font-body);
-    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: var(--font-b);
+    height: 100vh;
+    overflow: hidden;
   }
-  /* LAYOUT SHELL */
-  .app-shell { display: flex; flex-direction: column; height: 100vh; }
 
+  /* ── SHELL ── */
+  .shell { display: flex; flex-direction: column; height: 100vh; }
+
+  /* ── TOPBAR ── */
   .topbar {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 20px 32px; border-bottom: 1px solid rgba(201,161,92,0.2);
+    padding: 0 24px; height: 56px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: relative; z-index: 10;
   }
   .brand { display: flex; align-items: center; gap: 10px; }
-  .brand-mark {
-    font-family: var(--font-display); font-size: 28px; color: var(--gold);
-  }
-  .brand h1 {
-    font-family: var(--font-display); font-weight: 600; font-size: 22px;
-    letter-spacing: 0.3px;
-  }
+  .brand-mark { font-family: var(--font-d); font-size: 26px; color: var(--gold); line-height: 1; }
+  .brand-name { font-family: var(--font-d); font-size: 19px; font-weight: 600; color: var(--text-1); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
   .privacy-badge {
-    font-family: var(--font-mono); font-size: 12px; color: var(--sage);
-    background: rgba(124,152,133,0.12); padding: 6px 12px; border-radius: 20px;
+    font-family: var(--font-m); font-size: 11px; color: var(--sage);
+    background: rgba(107,143,118,0.08); padding: 5px 10px; border-radius: 20px;
+    border: 1px solid rgba(107,143,118,0.15);
   }
+  .clear-btn {
+    font-family: var(--font-m); font-size: 11px; color: var(--text-3);
+    background: none; border: 1px solid var(--border-md); padding: 5px 12px;
+    border-radius: 20px; cursor: pointer; transition: all 0.15s;
+  }
+  .clear-btn:hover { color: var(--text-2); border-color: var(--text-3); }
 
+  /* ── WORKSPACE ── */
   .workspace { display: flex; flex: 1; overflow: hidden; }
 
-  /* LIBRARY SIDEBAR */
-  .library {
-    width: 300px; background: var(--ink-light); padding: 24px;
-    display: flex; flex-direction: column; overflow-y: auto;
-    border-right: 1px solid rgba(201,161,92,0.15);
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0;
+    background: var(--bg-2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    transition: width 0.25s ease, opacity 0.25s ease;
+    overflow: hidden;
   }
-  .library-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .library-header h2 { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .sidebar.collapsed { width: 0; opacity: 0; pointer-events: none; }
 
-  .upload-btn {
-    font-family: var(--font-mono); font-size: 12px; color: var(--gold);
-    border: 1px solid var(--gold); padding: 6px 12px; border-radius: 6px;
-    cursor: pointer; transition: all 0.2s;
+  .sidebar-inner { width: var(--sidebar-w); display: flex; flex-direction: column; height: 100%; padding: 20px 16px; }
+
+  .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .sidebar-title { font-family: var(--font-m); font-size: 10px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 1.5px; }
+
+  .toggle-btn {
+    background: none; border: none; cursor: pointer; color: var(--text-3);
+    padding: 4px 6px; border-radius: 4px; font-size: 14px; line-height: 1;
+    transition: color 0.15s;
   }
-  .upload-btn:hover { background: var(--gold); color: var(--ink); }
+  .toggle-btn:hover { color: var(--text-2); }
 
-  .upload-status { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-bottom: 12px; min-height: 16px; }
+  .upload-area {
+    border: 1px dashed var(--border-md); border-radius: var(--r);
+    padding: 14px; text-align: center; cursor: pointer;
+    transition: all 0.15s; margin-bottom: 14px;
+  }
+  .upload-area:hover { border-color: var(--gold); background: var(--gold-dim); }
+  .upload-area label { cursor: pointer; display: block; }
+  .upload-area .ua-icon { font-size: 20px; margin-bottom: 4px; }
+  .upload-area .ua-text { font-family: var(--font-m); font-size: 11px; color: var(--text-2); }
+  .upload-area .ua-sub  { font-family: var(--font-m); font-size: 10px; color: var(--text-3); margin-top: 2px; }
 
-  /* DOCUMENT "INDEX CARDS" */
+  .upload-progress {
+    height: 2px; background: var(--bg-4); border-radius: 2px;
+    margin-bottom: 10px; overflow: hidden; display: none;
+  }
+  .upload-progress-bar {
+    height: 100%; background: var(--gold); width: 0%;
+    transition: width 0.3s ease; border-radius: 2px;
+  }
+
+  .upload-status { font-family: var(--font-m); font-size: 11px; color: var(--text-3); margin-bottom: 12px; min-height: 14px; }
+
+  .doc-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+
+  /* ── DOC CARDS ── */
   .doc-card {
-    background: var(--paper); color: var(--text-on-paper);
-    border-radius: 4px; padding: 14px 16px; margin-bottom: 10px;
-    box-shadow: 2px 3px 0 rgba(0,0,0,0.25);
-    font-family: var(--font-body);
-  }
-  .doc-card .doc-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; word-break: break-word; }
-  .doc-card .doc-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
-
-  /* CHAT / READING PANE */
-  .reading-pane { flex: 1; display: flex; flex-direction: column; padding: 24px 40px; overflow: hidden; }
-  .chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding-bottom: 20px; }
-
-  .msg-question {
-    align-self: flex-end; max-width: 65%;
-    background: var(--gold); color: var(--ink);
-    padding: 10px 16px; border-radius: 12px 12px 2px 12px;
-    font-size: 14px;
-  }
-
-  .msg-answer {
-    align-self: flex-start; max-width: 75%;
-    background: var(--paper); color: var(--text-on-paper);
-    padding: 16px 18px; border-radius: 12px 12px 12px 2px;
-    font-size: 14px; line-height: 1.6;
-  }
-
-  /* CITATION TABS — the signature element */
-  .citations { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .citation-tab {
-    font-family: var(--font-mono); font-size: 10px; color: var(--ink);
-    background: var(--sage); padding: 3px 8px; border-radius: 3px 3px 0 0;
-    border-bottom: 2px solid var(--ink-light);
-  }
-
-  /* INPUT ROW */
-  .chat-input-row { display: flex; gap: 10px; }
-  #questionInput {
-    flex: 1; padding: 14px 16px; border-radius: 8px; border: 1px solid rgba(201,161,92,0.3);
-    background: var(--ink-light); color: var(--text-on-ink); font-family: var(--font-body); font-size: 14px;
-  }
-  #questionInput:focus { outline: 2px solid var(--gold); }
-  .chat-input-row button {
-    padding: 14px 24px; border-radius: 8px; border: none;
-    background: var(--gold); color: var(--ink); font-weight: 600; cursor: pointer;
-    font-family: var(--font-body);
-  }
-  .chat-input-row button:hover { background: var(--gold-bright); }
-  /*delete button*/
-  .doc-card {
+    background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 11px 12px;
+    display: flex; align-items: flex-start; gap: 10px;
+    transition: border-color 0.15s;
     position: relative;
   }
-  .doc-delete-btn {
-    position: absolute; top: 10px; right: 10px;
-    background: none; border: none; cursor: pointer;
-    color: var(--text-muted); font-size: 14px; font-family: var(--font-body);
-    padding: 2px 6px; border-radius: 4px; opacity: 0.5;
-    transition: all 0.15s;
+  .doc-card:hover { border-color: var(--border-md); }
+  .doc-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .doc-info { flex: 1; min-width: 0; }
+  .doc-name { font-size: 12px; font-weight: 500; color: var(--text-1); word-break: break-word; line-height: 1.4; margin-bottom: 3px; }
+  .doc-meta { font-family: var(--font-m); font-size: 10px; color: var(--text-3); }
+  .doc-del {
+    background: none; border: none; cursor: pointer; color: var(--text-3);
+    font-size: 12px; padding: 2px 4px; border-radius: 3px; flex-shrink: 0;
+    opacity: 0; transition: all 0.15s; line-height: 1;
   }
-  .doc-delete-btn:hover { opacity: 1; color: #C0504D; background: rgba(192,80,77,0.1); }
+  .doc-card:hover .doc-del { opacity: 1; }
+  .doc-del:hover { color: var(--red); background: rgba(192,80,80,0.1); }
+
+  /* ── COLLAPSE TOGGLE (when sidebar is closed) ── */
+  .sidebar-open-btn {
+    position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    background: var(--bg-3); border: 1px solid var(--border-md);
+    border-left: none; border-radius: 0 6px 6px 0;
+    padding: 10px 6px; cursor: pointer; color: var(--text-3);
+    font-size: 12px; z-index: 5; transition: all 0.15s;
+    display: none;
+  }
+  .sidebar-open-btn:hover { color: var(--text-2); }
+  .sidebar-open-btn.visible { display: block; }
+
+  /* ── CHAT PANE ── */
+  .chat-pane {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
+  }
+
+  .chat-log {
+    flex: 1; overflow-y: auto; padding: 32px 40px;
+    display: flex; flex-direction: column; gap: 20px;
+    scroll-behavior: smooth;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px; text-align: center; gap: 16px;
+  }
+  .empty-glyph { font-family: var(--font-d); font-size: 56px; color: var(--gold); opacity: 0.3; line-height: 1; }
+  .empty-title { font-family: var(--font-d); font-size: 22px; color: var(--text-2); font-weight: 400; }
+  .empty-sub { font-size: 13px; color: var(--text-3); line-height: 1.6; max-width: 320px; }
+  .empty-hints { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .hint-pill {
+    font-family: var(--font-m); font-size: 11px; color: var(--text-3);
+    border: 1px solid var(--border); padding: 7px 14px; border-radius: 20px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .hint-pill:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+
+  /* ── MESSAGES ── */
+  .msg-q {
+    align-self: flex-end; max-width: 60%;
+    background: var(--gold); color: #0A0A0B;
+    padding: 10px 15px; border-radius: 14px 14px 3px 14px;
+    font-size: 13.5px; line-height: 1.5; font-weight: 500;
+  }
+
+  .msg-a {
+    align-self: flex-start; max-width: 78%;
+    background: var(--bg-3); color: var(--text-1);
+    border: 1px solid var(--border);
+    padding: 16px 18px; border-radius: 3px 14px 14px 14px;
+    font-size: 13.5px; line-height: 1.7;
+  }
+
+  /* markdown inside answers */
+  .msg-a p { margin-bottom: 10px; }
+  .msg-a p:last-child { margin-bottom: 0; }
+  .msg-a strong { color: var(--text-1); font-weight: 600; }
+  .msg-a em { color: var(--text-2); }
+  .msg-a ul, .msg-a ol { padding-left: 18px; margin-bottom: 10px; }
+  .msg-a li { margin-bottom: 4px; }
+  .msg-a code {
+    font-family: var(--font-m); font-size: 12px;
+    background: var(--bg-4); padding: 2px 6px; border-radius: 4px;
+    color: var(--gold);
+  }
+  .msg-a pre {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 14px; overflow-x: auto;
+    margin: 10px 0;
+  }
+  .msg-a pre code { background: none; padding: 0; }
+  .msg-a h1, .msg-a h2, .msg-a h3 {
+    font-family: var(--font-d); font-weight: 600;
+    color: var(--text-1); margin-bottom: 8px; margin-top: 14px;
+  }
+  .msg-a h1:first-child, .msg-a h2:first-child, .msg-a h3:first-child { margin-top: 0; }
+
+  /* ── THINKING LOADER ── */
+  .thinking-loader { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
+  .thinking-loader span {
+    width: 5px; height: 5px; background: var(--gold);
+    border-radius: 50%; opacity: 0.3;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .thinking-loader span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-loader span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+    40%           { opacity: 1;   transform: scale(1.1); }
+  }
+
+  /* ── CITATIONS ── */
+  .citations { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .citation-tab {
+    font-family: var(--font-m); font-size: 10px; color: var(--sage);
+    background: rgba(107,143,118,0.08); border: 1px solid rgba(107,143,118,0.2);
+    padding: 3px 8px; border-radius: 4px;
+  }
+
+  /* ── INPUT ROW ── */
+  .input-wrap {
+    padding: 16px 40px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .input-row { display: flex; gap: 8px; align-items: flex-end; }
+  .input-box {
+    flex: 1; padding: 12px 15px; border-radius: var(--r);
+    border: 1px solid var(--border-md);
+    background: var(--bg-3); color: var(--text-1);
+    font-family: var(--font-b); font-size: 13.5px;
+    outline: none; resize: none; line-height: 1.5;
+    max-height: 120px; overflow-y: auto;
+    transition: border-color 0.15s;
+  }
+  .input-box:focus { border-color: var(--gold); }
+  .input-box::placeholder { color: var(--text-3); }
+  .send-btn {
+    padding: 11px 20px; border-radius: var(--r); border: none;
+    background: var(--gold); color: #0A0A0B;
+    font-family: var(--font-b); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .send-btn:hover { background: #DDB870; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .input-hint { font-family: var(--font-m); font-size: 10px; color: var(--text-3); margin-top: 6px; }
+
+  /* ── REPORT / EXPORT ── */
+  .report-count { font-family: var(--font-m); font-size: 10px; color: var(--gold); }
+  .report-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .report-btn { flex: 1; text-align: center; }
+  .report-btn:disabled, #clearReportBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .add-to-report-btn {
+    font-family: var(--font-m); font-size: 10px; color: var(--gold);
+    background: var(--gold-dim); border: 1px solid rgba(201,161,92,0.25);
+    padding: 4px 10px; border-radius: 20px; cursor: pointer;
+    margin-top: 12px; transition: all 0.15s;
+  }
+  .add-to-report-btn:hover { background: var(--gold-glow); }
+  .add-to-report-btn.added {
+    color: var(--sage); background: rgba(107,143,118,0.08);
+    border-color: rgba(107,143,118,0.2); cursor: default;
+  }
+
+  /* ── CHAT HISTORY (THREADS) ── */
+  .chat-list {
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 180px; overflow-y: auto; margin-bottom: 18px;
+  }
+  .chat-item {
+    background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 9px 10px;
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .chat-item:hover { border-color: var(--border-md); }
+  .chat-item.active { border-color: var(--gold); background: var(--gold-dim); }
+  .chat-item-title {
+    flex: 1; font-size: 12px; color: var(--text-1);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .chat-item-del {
+    background: none; border: none; cursor: pointer; color: var(--text-3);
+    font-size: 12px; padding: 2px 4px; border-radius: 3px; flex-shrink: 0;
+    opacity: 0; transition: all 0.15s; line-height: 1;
+  }
+  .chat-item:hover .chat-item-del { opacity: 1; }
+  .chat-item-del:hover { color: var(--red); background: rgba(192,80,80,0.1); }
 </style>
 </head>
 <body>
-    <div class="app-shell">
+<div class="shell">
 
-  <!-- HEADER -->
+  <!-- TOPBAR -->
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">§</span>
-      <h1>Scholar AI</h1>
+      <span class="brand-name">Scholar AI</span>
     </div>
-    <div class="privacy-badge">● Running locally — nothing leaves this machine</div>
+    <div class="topbar-right">
+      <button class="clear-btn" id="clearBtn">Clear chat</button>
+      <button class="clear-btn" id="logoutBtn">Sign out</button>
+      <div class="privacy-badge">● Running locally — nothing leaves this machine</div>
+    </div>
   </header>
 
-  <div class="workspace">
+  <div class="workspace" style="position:relative;">
 
-    <!-- LEFT: Document Library -->
-    <aside class="library">
-      <div class="library-header">
-        <h2>Library</h2>
-        <label class="upload-btn">
-          + Add Document
-          <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" hidden>
-        </label>
-      </div>
-      <div id="uploadStatus" class="upload-status"></div>
-      <div id="docList" class="doc-list">
-        <!-- document cards get inserted here by JS -->
+    <!-- SIDEBAR OPEN BUTTON (visible when collapsed) -->
+    <button class="sidebar-open-btn" id="sidebarOpenBtn" title="Open library">›</button>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+
+        <div class="sidebar-header">
+          <span class="sidebar-title">Chats</span>
+          <button class="toggle-btn" id="newChatBtn" title="New chat">+</button>
+        </div>
+        <div class="chat-list" id="chatList"></div>
+
+        <div class="sidebar-header" style="margin-top:6px;">
+          <span class="sidebar-title">Library</span>
+          <button class="toggle-btn" id="collapseBtn" title="Collapse sidebar">‹</button>
+        </div>
+
+        <!-- UPLOAD AREA -->
+        <div class="upload-area">
+          <label for="fileInput">
+            <div class="ua-icon">+</div>
+            <div class="ua-text">Add Document</div>
+            <div class="ua-sub">PDF · DOCX · TXT · PNG · JPG</div>
+            <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" hidden>
+          </label>
+        </div>
+
+        <div class="upload-progress" id="uploadProgress">
+          <div class="upload-progress-bar" id="uploadProgressBar"></div>
+        </div>
+        <div class="upload-status" id="uploadStatus"></div>
+
+        <div class="doc-list" id="docList"></div>
+
+        <!-- REPORT / EXPORT -->
+        <div class="report-section">
+          <div class="sidebar-header" style="margin-top:22px;">
+            <span class="sidebar-title">Report</span>
+            <span class="report-count" id="reportCount">0 items</span>
+          </div>
+          <div class="report-actions">
+            <button class="clear-btn report-btn" id="exportPdfBtn">Export PDF</button>
+            <button class="clear-btn report-btn" id="exportDocxBtn">Export DOCX</button>
+          </div>
+          <button class="clear-btn" id="clearReportBtn" style="width:100%; margin-top:8px;">Clear report</button>
+        </div>
       </div>
     </aside>
 
-    <!-- RIGHT: Chat -->
-    <main class="reading-pane">
-      <div id="chatLog" class="chat-log"></div>
-      <form id="chatForm" class="chat-input-row">
-        <input id="questionInput" type="text" placeholder="Ask something about your documents..." autocomplete="off">
-        <button type="submit">Ask</button>
-      </form>
+    <!-- CHAT PANE -->
+    <main class="chat-pane">
+      <div class="chat-log" id="chatLog">
+        <!-- empty state -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-glyph">§</div>
+          <div class="empty-title">What would you like to know?</div>
+          <div class="empty-sub">Upload documents to your library, then ask anything about them.</div>
+          <div class="empty-hints">
+            <div class="hint-pill" onclick="fillHint(this)">Summarise the key findings</div>
+            <div class="hint-pill" onclick="fillHint(this)">What are the main arguments?</div>
+            <div class="hint-pill" onclick="fillHint(this)">List all cited references</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-wrap">
+        <div class="input-row">
+          <textarea
+            class="input-box" id="questionInput" rows="1"
+            placeholder="Ask something about your documents..."></textarea>
+          <button class="send-btn" id="sendBtn" type="button">
+            Ask
+          </button>
+        </div>
+        <div class="input-hint">Press Ctrl + Enter to send</div>
+      </div>
     </main>
 
   </div>
 </div>
-</body>
+
 <script>
-  const API = ""; // same origin, so empty string is fine
+  // ── AUTH GUARD ────────────────────────────────────────────
+  const token = localStorage.getItem("scholar_token");
+  const userName = localStorage.getItem("scholar_name");
+  if (!token) {
+    window.location.href = "/app/login.html";
+  }
 
-  // ---------- LOAD DOCUMENT LIBRARY ----------
+  // add token to all fetch calls
+  const authFetch = (url, options = {}) => {
+    options.headers = {
+      ...options.headers,
+      "Authorization": `Bearer ${token}`
+    };
+    return fetch(url, options);
+  };
+
+  const API = "";
+
+  // ── CHAT HISTORY (MULTIPLE THREADS, localStorage) ─────────
+  const CONV_KEY = `scholar_conversations_${localStorage.getItem("scholar_email") || "anon"}`;
+
+  function loadConversations() {
+    try {
+      return JSON.parse(localStorage.getItem(CONV_KEY)) || [];
+    } catch {
+      return [];
+    }
+  }
+  function saveConversations() {
+    localStorage.setItem(CONV_KEY, JSON.stringify(conversations));
+  }
+
+  let conversations = loadConversations();
+  let activeConvId = null;
+
+  function newConversationObj() {
+    return {
+      id: "conv-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+      title: "New chat",
+      messages: [], // { role: "user" | "assistant", text, sources }
+      createdAt: Date.now()
+    };
+  }
+
+  function getActiveConv() {
+    return conversations.find(c => c.id === activeConvId);
+  }
+
+  function renderChatList() {
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
+
+    if (conversations.length === 0) {
+      list.innerHTML = `<p style="color:var(--text-3);font-size:11px;font-family:var(--font-m);text-align:center;padding:10px 0;">No chats yet.</p>`;
+      return;
+    }
+
+    [...conversations].sort((a, b) => b.createdAt - a.createdAt).forEach(conv => {
+      const item = document.createElement("div");
+      item.className = "chat-item" + (conv.id === activeConvId ? " active" : "");
+      item.innerHTML = `
+        <span class="chat-item-title">${conv.title}</span>
+        <button class="chat-item-del" title="Delete">✕</button>
+      `;
+      item.addEventListener("click", (e) => {
+        if (e.target.classList.contains("chat-item-del")) return;
+        switchConversation(conv.id);
+      });
+      item.querySelector(".chat-item-del").addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!confirm(`Delete "${conv.title}"?`)) return;
+        conversations = conversations.filter(c => c.id !== conv.id);
+        saveConversations();
+        if (activeConvId === conv.id) {
+          if (conversations.length > 0) {
+            switchConversation([...conversations].sort((a, b) => b.createdAt - a.createdAt)[0].id);
+          } else {
+            startNewConversation();
+          }
+        } else {
+          renderChatList();
+        }
+      });
+      list.appendChild(item);
+    });
+  }
+
+  function renderConversationMessages(conv) {
+    const chatLog = document.getElementById("chatLog");
+    chatLog.innerHTML = "";
+
+    if (!conv || conv.messages.length === 0) {
+      chatLog.appendChild(emptyState);
+      emptyState.style.display = "flex";
+      return;
+    }
+
+    emptyState.style.display = "none";
+
+    conv.messages.forEach(msg => {
+      if (msg.role === "user") {
+        const qBubble = document.createElement("div");
+        qBubble.className = "msg-q";
+        qBubble.textContent = msg.text;
+        chatLog.appendChild(qBubble);
+      } else {
+        const aBubble = document.createElement("div");
+        aBubble.className = "msg-a";
+        const answerHtml = marked.parse(msg.text || "");
+        const citationsHtml = (msg.sources || []).map(s =>
+          `<span class="citation-tab">${s.filename} · ${s.score}</span>`
+        ).join("");
+        aBubble.innerHTML = answerHtml + (citationsHtml ? `<div class="citations">${citationsHtml}</div>` : "");
+
+        const addBtn = document.createElement("button");
+        addBtn.className = "add-to-report-btn";
+        addBtn.textContent = "+ Add to report";
+        addBtn.addEventListener("click", () => {
+          addToReport(msg.question, msg.text, (msg.sources || []).map(s => s.filename), addBtn);
+        });
+        aBubble.appendChild(addBtn);
+        chatLog.appendChild(aBubble);
+      }
+    });
+
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function switchConversation(id) {
+    activeConvId = id;
+    renderConversationMessages(getActiveConv());
+    renderChatList();
+  }
+
+  function startNewConversation() {
+    const conv = newConversationObj();
+    conversations.push(conv);
+    saveConversations();
+    switchConversation(conv.id);
+  }
+
+  document.getElementById("newChatBtn").addEventListener("click", startNewConversation);
+
+  // ── SIDEBAR COLLAPSE ──────────────────────────────────────
+  const sidebar       = document.getElementById("sidebar");
+  const collapseBtn   = document.getElementById("collapseBtn");
+  const sidebarOpenBtn = document.getElementById("sidebarOpenBtn");
+
+  collapseBtn.addEventListener("click", () => {
+    sidebar.classList.add("collapsed");
+    sidebarOpenBtn.classList.add("visible");
+  });
+  sidebarOpenBtn.addEventListener("click", () => {
+    sidebar.classList.remove("collapsed");
+    sidebarOpenBtn.classList.remove("visible");
+  });
+
+  // ── CLEAR CHAT ────────────────────────────────────────────
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    const conv = getActiveConv();
+    if (conv) {
+      conv.title = "New chat";
+      conv.messages = [];
+      saveConversations();
+      renderChatList();
+    }
+    const chatLog = document.getElementById("chatLog");
+    chatLog.innerHTML = "";
+    chatLog.appendChild(emptyState);
+    emptyState.style.display = "flex";
+  });
+  const emptyState = document.getElementById("emptyState");
+
+  // ── REPORT / EXPORT ───────────────────────────────────────
+  let reportSections = []; // { question, answer, sources }
+
+  const reportCountEl  = document.getElementById("reportCount");
+  const exportPdfBtn   = document.getElementById("exportPdfBtn");
+  const exportDocxBtn  = document.getElementById("exportDocxBtn");
+  const clearReportBtn = document.getElementById("clearReportBtn");
+
+  function updateReportUI() {
+    reportCountEl.textContent = `${reportSections.length} item${reportSections.length === 1 ? "" : "s"}`;
+    const empty = reportSections.length === 0;
+    exportPdfBtn.disabled = empty;
+    exportDocxBtn.disabled = empty;
+    clearReportBtn.disabled = empty;
+  }
+
+  function addToReport(question, answer, sources, btnEl) {
+    reportSections.push({ question, answer, sources });
+    updateReportUI();
+    btnEl.textContent = "✓ Added to report";
+    btnEl.classList.add("added");
+    btnEl.disabled = true;
+  }
+
+  clearReportBtn.addEventListener("click", () => {
+    reportSections = [];
+    updateReportUI();
+  });
+
+  async function exportReport(format) {
+    if (reportSections.length === 0) return;
+    const btn = format === "pdf" ? exportPdfBtn : exportDocxBtn;
+    const originalText = btn.textContent;
+    btn.textContent = "Generating…";
+    btn.disabled = true;
+
+    try {
+      const res = await authFetch(`${API}/export/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Scholar AI Report",
+          format,
+          sections: reportSections
+        })
+      });
+
+      if (!res.ok) {
+        alert("Export failed. Please try again.");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url;
+      a.download = format === "pdf" ? "scholar-ai-report.pdf" : "scholar-ai-report.docx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Export failed. Is the server running?");
+    } finally {
+      btn.textContent = originalText;
+      updateReportUI();
+    }
+  }
+
+  exportPdfBtn.addEventListener("click", () => exportReport("pdf"));
+  exportDocxBtn.addEventListener("click", () => exportReport("docx"));
+  updateReportUI();
+
+  // ── LOGOUT ────────────────────────────────────────────────
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("scholar_token");
+    localStorage.removeItem("scholar_name");
+    localStorage.removeItem("scholar_email");
+    window.location.href = "/app/login.html";
+  });
+
+  // ── HINT PILLS ───────────────────────────────────────────
+  function fillHint(el) {
+    document.getElementById("questionInput").value = el.textContent.trim();
+    document.getElementById("questionInput").focus();
+  }
+
+  // ── AUTO-RESIZE TEXTAREA ──────────────────────────────────
+  const input = document.getElementById("questionInput");
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 120) + "px";
+  });
+
+  // ── CTRL+ENTER TO SEND ────────────────────────────────────
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.ctrlKey) {
+      e.preventDefault();
+      sendQuestion();
+    }
+  });
+  document.getElementById("sendBtn").addEventListener("click", sendQuestion);
+
+  // ── FILE TYPE ICON ────────────────────────────────────────
+  function fileIcon(filename) {
+    const ext = filename.split(".").pop().toLowerCase();
+    if (["png","jpg","jpeg","gif","webp"].includes(ext)) return "🖼️";
+    if (ext === "pdf") return "📄";
+    if (["docx","doc"].includes(ext)) return "📝";
+    if (ext === "txt") return "🗒️";
+    return "📎";
+  }
+
+  // ── LOAD DOCUMENTS ────────────────────────────────────────
   async function loadDocuments() {
-    const res = await fetch(`${API}/documents/`);
+    const res  = await authFetch(`${API}/documents/`);
     const docs = await res.json();
-
-    const docList = document.getElementById("docList");
-    docList.innerHTML = "";
+    const list = document.getElementById("docList");
+    list.innerHTML = "";
 
     if (docs.length === 0) {
-      docList.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">No documents yet. Add one above.</p>`;
+      list.innerHTML = `<p style="color:var(--text-3);font-size:12px;font-family:var(--font-m);text-align:center;padding:20px 0;">No documents yet.</p>`;
       return;
     }
 
@@ -194,106 +722,169 @@
       const card = document.createElement("div");
       card.className = "doc-card";
       card.innerHTML = `
-        <button class="doc-delete-btn" title="Delete document">✕</button>
-        <div class="doc-name">${doc.filename}</div>
-        <div class="doc-meta">${doc.source_type.toUpperCase()} · ${doc.chunk_count} chunks</div>
+        <div class="doc-icon">${fileIcon(doc.filename)}</div>
+        <div class="doc-info">
+          <div class="doc-name">${doc.filename}</div>
+          <div class="doc-meta">${doc.source_type.toUpperCase()} · ${doc.chunk_count} chunks</div>
+        </div>
+        <button class="doc-del" title="Delete">✕</button>
       `;
-
-      card.querySelector(".doc-delete-btn").addEventListener("click", async () => {
-        const confirmed = confirm(`Delete "${doc.filename}"? This can't be undone.`);
-        if (!confirmed) return;
-
-        await fetch(`${API}/documents/${doc.doc_id}`, { method: "DELETE" });
-        loadDocuments(); // refresh the list
+      card.querySelector(".doc-del").addEventListener("click", async () => {
+        if (!confirm(`Delete "${doc.filename}"?`)) return;
+        await authFetch(`${API}/documents/${doc.doc_id}`, { method: "DELETE" });
+        loadDocuments();
       });
-
-      docList.appendChild(card);
+      list.appendChild(card);
     });
   }
 
-  // ---------- UPLOAD A DOCUMENT ----------
+  // ── UPLOAD ────────────────────────────────────────────────
   document.getElementById("fileInput").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const statusEl = document.getElementById("uploadStatus");
-    statusEl.textContent = `Processing ${file.name}...`;
+    const status   = document.getElementById("uploadStatus");
+    const progress = document.getElementById("uploadProgress");
+    const bar      = document.getElementById("uploadProgressBar");
+
+    status.textContent = `Processing ${file.name}…`;
+    progress.style.display = "block";
+
+    // animate progress bar (fake progress — real progress needs streaming)
+    let pct = 0;
+    const ticker = setInterval(() => {
+      pct = Math.min(pct + Math.random() * 15, 85);
+      bar.style.width = pct + "%";
+    }, 200);
 
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const res = await fetch(`${API}/documents/upload`, {
-        method: "POST",
-        body: formData,
-      });
+      const res = await authFetch(`${API}/documents/upload`, { method: "POST", body: formData });
+      clearInterval(ticker);
+      bar.style.width = "100%";
 
       if (!res.ok) {
         const err = await res.json();
-        statusEl.textContent = `Error: ${err.detail}`;
+        status.textContent = `Error: ${err.detail}`;
+        setTimeout(() => { progress.style.display = "none"; bar.style.width = "0%"; }, 1500);
         return;
       }
 
       const data = await res.json();
-      statusEl.textContent = `Added ${data.filename} (${data.chunks_stored} chunks)`;
-      loadDocuments(); // refresh the sidebar
+      status.textContent = `✓ ${data.filename} (${data.chunks_stored} chunks)`;
+      setTimeout(() => {
+        progress.style.display = "none";
+        bar.style.width = "0%";
+        status.textContent = "";
+      }, 2500);
+
+      loadDocuments();
     } catch (err) {
-      statusEl.textContent = "Upload failed. Check server connection.";
+      clearInterval(ticker);
+      status.textContent = "Upload failed.";
+      progress.style.display = "none";
     }
 
-    e.target.value = ""; // reset file input so same file can be re-uploaded if needed
+    e.target.value = "";
   });
 
-  // ---------- ASK A QUESTION ----------
-  document.getElementById("chatForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const input = document.getElementById("questionInput");
+  // ── SEND QUESTION ─────────────────────────────────────────
+  async function sendQuestion() {
     const question = input.value.trim();
     if (!question) return;
 
+    const conv = getActiveConv();
+    if (!conv) return;
+
     const chatLog = document.getElementById("chatLog");
 
-    // show the user's question immediately
+    // hide empty state
+    emptyState.style.display = "none";
+
+    // user bubble
     const qBubble = document.createElement("div");
-    qBubble.className = "msg-question";
+    qBubble.className = "msg-q";
     qBubble.textContent = question;
     chatLog.appendChild(qBubble);
 
-    input.value = "";
-    chatLog.scrollTop = chatLog.scrollHeight;
+    // persist user message
+    conv.messages.push({ role: "user", text: question });
+    if (conv.messages.filter(m => m.role === "user").length === 1) {
+      conv.title = question.length > 40 ? question.slice(0, 40) + "…" : question;
+    }
+    saveConversations();
+    renderChatList();
 
-    // show a temporary "thinking" bubble
-    const thinkingBubble = document.createElement("div");
-    thinkingBubble.className = "msg-answer";
-    thinkingBubble.textContent = "Thinking...";
-    chatLog.appendChild(thinkingBubble);
+    input.value = "";
+    input.style.height = "auto";
+
+    // disable send while waiting
+    const sendBtn = document.getElementById("sendBtn");
+    sendBtn.disabled = true;
+
+    // thinking loader
+    const aBubble = document.createElement("div");
+    aBubble.className = "msg-a";
+    aBubble.innerHTML = `
+      <div class="thinking-loader">
+        <span></span><span></span><span></span>
+      </div>`;
+    chatLog.appendChild(aBubble);
     chatLog.scrollTop = chatLog.scrollHeight;
 
     try {
-      const res = await fetch(`${API}/chat/`, {
+      const res  = await authFetch(`${API}/chat/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: "web-ui", question, top_k: 5 }),
+        body: JSON.stringify({ session_id: conv.id, question, top_k: 5 }),
       });
       const data = await res.json();
 
-      // build the citation tabs
-      const citationsHtml = data.sources.map(s =>
+      // render markdown
+      const answer = data.answer || "No answer returned.";
+      const answerHtml = marked.parse(answer);
+
+      // citation tabs
+      const sources = data.sources || [];
+      const sourceFilenames = sources.map(s => s.filename);
+      const citationsHtml = sources.map(s =>
         `<span class="citation-tab">${s.filename} · ${s.score}</span>`
       ).join("");
 
-      thinkingBubble.innerHTML = `
-        ${data.answer}
-        <div class="citations">${citationsHtml}</div>
-      `;
+      aBubble.innerHTML = answerHtml +
+        (citationsHtml ? `<div class="citations">${citationsHtml}</div>` : "");
+
+      // add-to-report button
+      const addBtn = document.createElement("button");
+      addBtn.className = "add-to-report-btn";
+      addBtn.textContent = "+ Add to report";
+      addBtn.addEventListener("click", () => {
+        addToReport(question, answer, sourceFilenames, addBtn);
+      });
+      aBubble.appendChild(addBtn);
+
+      // persist assistant message
+      conv.messages.push({ role: "assistant", text: answer, sources, question });
+      saveConversations();
+
     } catch (err) {
-      thinkingBubble.textContent = "Something went wrong. Is the server running?";
+      aBubble.textContent = "Something went wrong. Is the server running?";
     }
 
+    sendBtn.disabled = false;
     chatLog.scrollTop = chatLog.scrollHeight;
-  });
+  }
 
-  // ---------- INITIAL LOAD ----------
+  // ── INIT ──────────────────────────────────────────────────
   loadDocuments();
+
+  if (conversations.length > 0) {
+    switchConversation([...conversations].sort((a, b) => b.createdAt - a.createdAt)[0].id);
+  } else {
+    startNewConversation();
+  }
 </script>
+</body>
 </html>
