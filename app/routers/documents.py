@@ -55,6 +55,7 @@ async def upload_document(
         filename=file.filename,
         source_type=source_type,
         chunks=chunks,
+        owner_id=current_user["id"],
     )
 
     return UploadResponse(
@@ -69,7 +70,7 @@ async def upload_document(
 async def get_all_documents(
     current_user: dict = Depends(get_current_user)
 ):
-    return list_documents()
+    return list_documents(owner_id=current_user["id"])
 
 
 @router.delete("/{doc_id}")
@@ -77,7 +78,7 @@ async def remove_document(
     doc_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    deleted_count = delete_document(doc_id)
+    deleted_count = delete_document(doc_id, owner_id=current_user["id"])
 
     if deleted_count == 0:
         raise HTTPException(status_code=404, detail="Document not found")

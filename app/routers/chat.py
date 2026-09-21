@@ -13,7 +13,7 @@ async def chat(
     request: ChatRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    hits = search_memory(request.question, top_k=request.top_k)
+    hits = search_memory(request.question, owner_id=current_user["id"], top_k=request.top_k)
 
     answer = answer_question(request.question, hits)
     sources = [

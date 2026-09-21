@@ -11,18 +11,31 @@ _collection = _client.get_or_create_collection(
 
 
 def embed_text(text: str) -> list[float]:
+    if len(text) > 4000:  # sanity cap, well under model's token limit
+        text = text[:4000]
     response = ollama.embeddings(model=settings.embed_model, prompt=text)
     return response["embedding"]
 
 
-def store_chunks(doc_id: str, filename: str, source_type: str, chunks: list[str]) -> int:
+def store_chunks(
+    doc_id: str,
+    filename: str,
+    source_type: str,
+    chunks: list[str],
+    owner_id: int,
+) -> int:
     if not chunks:
         return 0
 
     ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
     embeddings = [embed_text(chunk) for chunk in chunks]
     metadatas = [
-        {"doc_id": doc_id, "filename": filename, "source_type": source_type}
+        {
+            "doc_id": doc_id,
+            "filename": filename,
+            "source_type": source_type,
+            "owner_id": owner_id,
+        }
         for _ in chunks
     ]
 
@@ -35,14 +48,15 @@ def store_chunks(doc_id: str, filename: str, source_type: str, chunks: list[str]
     return len(chunks)
 
 
-
-
-def delete_document(doc_id: str) -> int:
+def delete_document(doc_id: str, owner_id: int) -> int:
     """
-    Removes all chunks belonging to a document from persistent memory.
+    Removes all chunks belonging to a document from persistent memory,
+    but only if it belongs to the requesting owner.
     Returns how many chunks were deleted.
     """
-    existing = _collection.get(where={"doc_id": doc_id})
+    existing = _collection.get(
+        where={"$and": [{"doc_id": doc_id}, {"owner_id": owner_id}]}
+    )
     ids_to_delete = existing.get("ids", [])
 
     if not ids_to_delete:
@@ -51,16 +65,15 @@ def delete_document(doc_id: str) -> int:
     _collection.delete(ids=ids_to_delete)
     return len(ids_to_delete)
 
-def embed_text(text: str):
-    if len(text) > 4000:  # sanity cap, well under model's token limit
-        text = text[:4000]
-    response = ollama.embeddings(model=settings.embed_model, prompt=text)
-    return response["embedding"]
-def search_memory(query: str, top_k: int = 5) -> list[dict]:
+
+def search_memory(query: str, owner_id: int, top_k: int = 5) -> list[dict]:
     query_embedding = embed_text(query)
 
-    # Find every unique document currently stored
-    all_items = _collection.get(include=["metadatas"])
+    # Find every unique document belonging to this owner
+    all_items = _collection.get(
+        where={"owner_id": owner_id},
+        include=["metadatas"],
+    )
     doc_ids = list({m["doc_id"] for m in all_items["metadatas"]})
 
     if not doc_ids:
@@ -74,7 +87,7 @@ def search_memory(query: str, top_k: int = 5) -> list[dict]:
         results = _collection.query(
             query_embeddings=[query_embedding],
             n_results=per_doc_k,
-            where={"doc_id": doc_id},
+            where={"$and": [{"doc_id": doc_id}, {"owner_id": owner_id}]},
         )
         docs = results.get("documents", [[]])[0]
         metas = results.get("metadatas", [[]])[0]
@@ -92,8 +105,8 @@ def search_memory(query: str, top_k: int = 5) -> list[dict]:
     return hits
 
 
-def list_documents() -> list[dict]:
-    all_items = _collection.get()
+def list_documents(owner_id: int) -> list[dict]:
+    all_items = _collection.get(where={"owner_id": owner_id})
     seen = {}
     for meta in all_items.get("metadatas", []):
         doc_id = meta.get("doc_id")
